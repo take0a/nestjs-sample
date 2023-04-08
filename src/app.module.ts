@@ -5,6 +5,8 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CustomersModule } from './customers/customers.module';
 import { Customer } from './customers/entities/customer.entity';
+import { ProductsModule } from './products/products.module';
+import { Product } from './products/entities/product.entity';
 
 @Module({
   imports: [
@@ -20,13 +22,14 @@ import { Customer } from './customers/entities/customer.entity';
         username: configService.get('DB_USER'),
         password: configService.get('DB_PASS'),
         database: 'postgres',
-        entities: [Customer],
+        entities: [Customer, Product],
         logging: true,
         synchronize: false,
       }),
       inject: [ConfigService],
     }),
     CustomersModule,
+    ProductsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
