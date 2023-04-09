@@ -7,6 +7,8 @@ import { CustomersModule } from './customers/customers.module';
 import { Customer } from './customers/entities/customer.entity';
 import { ProductsModule } from './products/products.module';
 import { Product } from './products/entities/product.entity';
+import { OrdersModule } from './orders/orders.module';
+import { Order, OrderDetail } from './orders/entities/order.entity';
 
 @Module({
   imports: [
@@ -22,7 +24,7 @@ import { Product } from './products/entities/product.entity';
         username: configService.get('DB_USER'),
         password: configService.get('DB_PASS'),
         database: 'postgres',
-        entities: [Customer, Product],
+        entities: [Customer, Product, Order, OrderDetail],
         logging: true,
         synchronize: false,
       }),
@@ -30,6 +32,7 @@ import { Product } from './products/entities/product.entity';
     }),
     CustomersModule,
     ProductsModule,
+    OrdersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
