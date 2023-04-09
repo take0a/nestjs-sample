@@ -4,7 +4,7 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { Order } from './entities/order.entity';
@@ -14,6 +14,7 @@ export class OrdersService {
   constructor(
     @InjectRepository(Order)
     private ordersRepository: Repository<Order>,
+    private dataSource: DataSource,
   ) {}
 
   async create(createOrderDto: CreateOrderDto): Promise<Order> {
@@ -51,7 +52,20 @@ export class OrdersService {
     if (!order) {
       throw new NotFoundException(`Order not found (${id})`);
     }
-    await this.ordersRepository.remove([order]);
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      await queryRunner.manager.remove(order.details);
+      await queryRunner.manager.remove(order);
+      await queryRunner.commitTransaction();
+    } catch (e) {
+      await queryRunner.rollbackTransaction();
+      throw new InternalServerErrorException(e.message);
+    } finally {
+      await queryRunner.release();
+    }
     return;
   }
 }
