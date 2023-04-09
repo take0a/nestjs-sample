@@ -4,10 +4,10 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, DeleteResult, Repository } from 'typeorm';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
-import { Order } from './entities/order.entity';
+import { Order, OrderDetail } from './entities/order.entity';
 
 @Injectable()
 export class OrdersService {
@@ -45,20 +45,14 @@ export class OrdersService {
     });
   }
 
-  async remove(id: number): Promise<void> {
-    const order = await this.ordersRepository.findOneBy({
-      orderId: id,
-    });
-    if (!order) {
-      throw new NotFoundException(`Order not found (${id})`);
-    }
-
+  async remove(id: number): Promise<DeleteResult> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
+    let result: DeleteResult;
     try {
-      await queryRunner.manager.remove(order.details);
-      await queryRunner.manager.remove(order);
+      await queryRunner.manager.delete(OrderDetail, { orderId: id });
+      result = await queryRunner.manager.delete(Order, { orderId: id });
       await queryRunner.commitTransaction();
     } catch (e) {
       await queryRunner.rollbackTransaction();
@@ -66,6 +60,9 @@ export class OrdersService {
     } finally {
       await queryRunner.release();
     }
-    return;
+    if (!result.affected) {
+      throw new NotFoundException(`Order not found (${id})`);
+    }
+    return result;
   }
 }

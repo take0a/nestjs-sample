@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
 } from '@nestjs/common';
+import { DeleteResult } from 'typeorm';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
@@ -40,11 +41,7 @@ export class OrdersController {
   }
 
   @Delete(':id')
-  async remove(@Param('id') id: string): Promise<void> {
+  async remove(@Param('id') id: string): Promise<DeleteResult> {
     return await this.ordersService.remove(+id);
   }
-  // @Delete(':id')
-  // async remove(@Param('id') id: string): Promise<DeleteResult> {
-  //   return await this.ordersService.remove(+id);
-  // }
 }
