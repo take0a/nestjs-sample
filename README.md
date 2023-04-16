@@ -1,73 +1,141 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
-</p>
+# はじめに
+当社では、クラウドネイティブなSaaSの開発をしており、いつもはWebAPIの実装ならサーバーレスで。となるのですが、今回は、サーバーレスでないWebAPIの実現方法として、NestJSを動かしてみましたという内容です。
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
-
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
-
-## Description
-
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Installation
-
-```bash
-$ npm install
+## やりたいこと
+こんな感じのよくありそうなデータベースのテーブルを
+```mermaid
+erDiagram
+    CUSTOMER ||..o{ ORDER_HEADER : "注文する"
+    CUSTOMER {
+        int CUSTOMER_ID PK "顧客ID"
+        text NAME "氏名"
+        text ADDRESS "住所"
+    }
+    ORDER_HEADER ||--|{ ORDER_DETAIL : "構成する"
+    ORDER_HEADER {
+        int ORDER_ID PK "受注ID"
+        int CUSTOMER_ID FK "顧客ID"
+        date ORDER_DATE "受注日"
+    }
+    ORDER_DETAIL {
+        int ORDER_ID PK "受注ID"
+        int ROW_NUMBER PK "行番号"
+        int PRODUCT_ID FK "製品ID"
+        int QUANTITY "数量"
+        int PRICE_PER_UNIT "販売単価"
+    }
+    ORDER_DETAIL }o..|| PRODUCT : "販売する"
+    PRODUCT {
+        int PRODUCT_ID PK "製品ID"
+        text NAME "製品名"
+        int PRICE_PER_UNIT "標準単価"
+    }
 ```
 
-## Running the app
+こんな感じのRESTリソースとして公開したい。とします。
+```mermaid
+erDiagram
+    customer {
+        int customerId PK "顧客ID"
+        string name "氏名"
+        string address "住所"
+    }
+    order ||--|{ orderDetail : "details"
+    order {
+        int orderId PK "受注ID"
+        int customerId FK "顧客ID"
+        date orderDate "受注日"
+    }
+    orderDetail {
+        int rowNumber PK "行番号"
+        int productID "製品ID"
+        int quantity "数量"
+        int pricePerUnit "販売単価"
+    }
+    product {
+        int productId PK "製品ID"
+        string name "製品名"
+        int pricePerUnit "標準単価"
+    }
+```
 
+# やったこと
+## NestJSの導入
 ```bash
-# development
+$ node --version
+v16.19.1
+$ npm --version
+8.19.2
+$ npm i -g @nestjs/cli
+$ nest --version
+9.3.0
+$ nest new nestjs-sample
+? Which package manager would you ❤️  to use? npm
+🚀  Successfully created project nestjs-sample
+```
+別件で使用中の環境ですが、なんの問題もありませんでした。
+
+### 確認
+```bash
 $ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
 ```
-
-## Test
+で起動して、別のターミナルから
 
 ```bash
-# unit tests
-$ npm run test
+$ curl http://localhost:3000/
+Hello World!
+```
+おお、何もしてないけど動く。素敵です。
 
-# e2e tests
-$ npm run test:e2e
+## CRUD generator
+どんな感じで構成するのが良いのかしらと本家のサイトを見ているとありました。
 
-# test coverage
-$ npm run test:cov
+https://docs.nestjs.com/recipes/crud-generator
+
+やってみます。
+```bash
+$ nest g resource customers
+? What transport layer do you use? REST API
+? Would you like to generate CRUD entry points? Yes
+✔ Packages installed successfully.
 ```
 
-## Support
+### 確認
+こんな感じで customers 以下にファイルが生成されて、app.module に追加されました。
+```bash
+$ tree src
+src
+├── app.controller.spec.ts
+├── app.controller.ts
+├── app.module.ts
+├── app.service.ts
+├── customers
+│   ├── customers.controller.spec.ts
+│   ├── customers.controller.ts
+│   ├── customers.module.ts
+│   ├── customers.service.spec.ts
+│   ├── customers.service.ts
+│   ├── dto
+│   │   ├── create-customer.dto.ts
+│   │   └── update-customer.dto.ts
+│   └── entities
+│       └── customer.entity.ts
+└── main.ts
+```
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+```bash
+$ npm run start
+```
+で起動して、また、別のターミナルから
 
-## Stay in touch
+```bash
+$ curl http://localhost:3000/customers
+This action returns all customers
+```
+まだ、なにもしていないけど、ちゃんとルーティングされている。👏
 
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+# 次回は
 
-## License
+データベースを作って繋ぎます。
 
-Nest is [MIT licensed](LICENSE).
+https://zenn.dev/robon/articles/32bf49163826ca
