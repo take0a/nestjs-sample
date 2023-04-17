@@ -25,7 +25,7 @@ import { Order, OrderDetail } from './orders/entities/order.entity';
         password: configService.get('DB_PASS'),
         database: 'postgres',
         entities: [Customer, Product, Order, OrderDetail],
-        logging: true,
+        // logging: true,
         synchronize: false,
       }),
       inject: [ConfigService],
